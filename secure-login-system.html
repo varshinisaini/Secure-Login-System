@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VaultAuth — Secure Login System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F7F4EF;
+    --cream-dark: #EDE9E1;
+    --ink: #1A1714;
+    --ink-soft: #4A453F;
+    --ink-muted: #8A8279;
+    --gold: #C9973A;
+    --gold-light: #F0DEB8;
+    --gold-pale: #FAF3E4;
+    --teal: #1D7A6E;
+    --teal-light: #D0EDE9;
+    --red: #C0392B;
+    --red-light: #FDECEA;
+    --green: #1E7A4A;
+    --green-light: #D4F0E0;
+    --border: rgba(26,23,20,0.12);
+    --border-strong: rgba(26,23,20,0.22);
+    --shadow-sm: 0 2px 8px rgba(26,23,20,0.07);
+    --shadow-md: 0 8px 32px rgba(26,23,20,0.10);
+    --shadow-lg: 0 24px 64px rgba(26,23,20,0.13);
+    --radius: 14px;
+    --radius-lg: 22px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px;
+    background: rgba(247,244,239,0.88);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--ink);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 16px; height: 16px; }
+  .nav-badge {
+    font-size: 11px; font-weight: 500;
+    padding: 4px 10px;
+    background: var(--gold-pale);
+    color: var(--gold);
+    border: 1px solid var(--gold-light);
+    border-radius: 100px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .app {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 100px 24px 40px;
+  }
+
+  /* ── CARD SHELL ── */
+  .card {
+    width: 100%; max-width: 440px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+
+  /* ── CARD HEADER ── */
+  .card-header {
+    padding: 32px 36px 28px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--cream) 0%, var(--gold-pale) 100%);
+    position: relative;
+  }
+  .card-header::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+  }
+  .status-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px var(--green-light);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--green-light); }
+    50% { box-shadow: 0 0 0 6px rgba(30,122,74,0.15); }
+  }
+  .status-label { font-size: 12px; color: var(--green); font-weight: 500; letter-spacing: 0.4px; }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  .card-title span { color: var(--gold); }
+  .card-sub { font-size: 14px; color: var(--ink-muted); margin-top: 6px; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1; padding: 14px;
+    text-align: center;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink-muted);
+    cursor: pointer;
+    border: none; background: none;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .tab.active {
+    color: var(--ink);
+    background: #fff;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 16px; right: 16px; height: 2px;
+    background: var(--gold);
+    border-radius: 2px 2px 0 0;
+  }
+  .tab:hover:not(.active) { background: var(--cream); color: var(--ink); }
+
+  /* ── FORM BODY ── */
+  .card-body { padding: 28px 36px 32px; }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── FIELDS ── */
+  .field { margin-bottom: 18px; }
+  .field-label {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 7px;
+  }
+  .field-label span { font-size: 12px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.3px; }
+  .field-link {
+    font-size: 12px; color: var(--teal); text-decoration: none; cursor: pointer;
+    font-weight: 500;
+  }
+  .field-link:hover { text-decoration: underline; }
+  .input-wrap { position: relative; }
+  .input-wrap input {
+    width: 100%;
+    padding: 11px 42px 11px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  .input-wrap input:focus {
+    border-color: var(--gold);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--gold-pale);
+  }
+  .input-wrap input::placeholder { color: var(--ink-muted); }
+  .input-icon {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-muted);
+    cursor: pointer; user-select: none;
+    font-size: 18px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .input-icon:hover { color: var(--ink); }
+  .input-valid { border-color: var(--green) !important; }
+  .input-invalid { border-color: var(--red) !important; }
+
+  /* ── STRENGTH METER ── */
+  .strength-meter { margin-top: 8px; }
+  .strength-bars { display: flex; gap: 4px; }
+  .strength-bar {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--cream-dark);
+    transition: background 0.3s;
+  }
+  .strength-bar.filled-weak { background: var(--red); }
+  .strength-bar.filled-fair { background: var(--gold); }
+  .strength-bar.filled-strong { background: var(--teal); }
+  .strength-bar.filled-excellent { background: var(--green); }
+  .strength-text { font-size: 11px; color: var(--ink-muted); margin-top: 5px; text-align: right; }
+
+  /* ── CHECKBOX ── */
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+    cursor: pointer;
+  }
+  .check-row input[type="checkbox"] { display: none; }
+  .check-box {
+    width: 18px; height: 18px; flex-shrink: 0;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    background: var(--cream);
+  }
+  .check-row:hover .check-box { border-color: var(--gold); }
+  .check-box.checked { background: var(--gold); border-color: var(--gold); }
+  .check-box.checked::after {
+    content: '✓';
+    color: #fff; font-size: 11px; font-weight: 700; line-height: 1;
+  }
+  .check-text { font-size: 13px; color: var(--ink-soft); }
+
+  /* ── SUBMIT BUTTON ── */
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #fff;
+    background: var(--ink);
+    border: none; border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(201,151,58,0.15));
+    pointer-events: none;
+  }
+  .btn-primary:hover { background: #2d2926; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary .btn-icon { font-size: 16px; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 22px 0;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .divider span { font-size: 12px; color: var(--ink-muted); }
+
+  /* ── OAUTH BUTTONS ── */
+  .oauth-row { display: flex; gap: 10px; }
+  .btn-oauth {
+    flex: 1; padding: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn-oauth:hover { background: var(--cream-dark); border-color: var(--ink); }
+  .btn-oauth svg { width: 17px; height: 17px; }
+
+  /* ── 2FA PANEL ── */
+  .tfa-hint {
+    background: var(--teal-light);
+    border: 1px solid rgba(29,122,110,0.2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 13px; color: var(--teal);
+    margin-bottom: 20px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .tfa-hint-icon { font-size: 18px; margin-top: 1px; flex-shrink: 0; }
+  .otp-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .otp-input {
+    flex: 1; height: 54px;
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 700;
+    text-align: center;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    outline: none;
+    transition: all 0.2s;
+    -moz-appearance: textfield;
+    -webkit-appearance: none;
+  }
+  .otp-input::-webkit-inner-spin-button { display: none; }
+  .otp-input:focus {
+    border-color: var(--gold);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--gold-pale);
+  }
+  .otp-input.filled { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
+
+  /* ── SECURITY BADGES ── */
+  .security-row {
+    display: flex; justify-content: center; gap: 16px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .sec-badge {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--ink-muted); letter-spacing: 0.2px;
+  }
+  .sec-badge svg { width: 13px; height: 13px; opacity: 0.5; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--ink); color: #fff;
+    padding: 12px 22px;
+    border-radius: 100px;
+    font-size: 14px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+    white-space: nowrap;
+    box-shadow: var(--shadow-lg);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success::before { content: '✓'; color: #5BE09C; font-weight: 700; }
+  .toast.error::before { content: '✕'; color: #F98080; font-weight: 700; }
+  .toast.info::before { content: '●'; color: var(--gold); font-weight: 700; }
+
+  /* ── SUCCESS SCREEN ── */
+  .success-screen {
+    display: none; text-align: center; padding: 12px 0;
+  }
+  .success-screen.active { display: block; }
+  .success-icon {
+    width: 64px; height: 64px; margin: 0 auto 20px;
+    background: var(--green-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.4); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .success-sub { font-size: 14px; color: var(--ink-muted); margin-bottom: 24px; }
+  .session-card {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: left;
+    margin-bottom: 20px;
+  }
+  .session-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px;
+    padding: 5px 0;
+  }
+  .session-row:not(:last-child) { border-bottom: 1px solid var(--border); margin-bottom: 5px; }
+  .session-key { color: var(--ink-muted); }
+  .session-val { color: var(--ink); font-weight: 500; font-family: 'DM Mono', monospace; }
+  .btn-logout {
+    width: 100%;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--red);
+    background: var(--red-light);
+    border: 1px solid rgba(192,57,43,0.2);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { background: #fbd8d5; }
+
+  /* ── DECORATIVE BLOB ── */
+  .blob {
+    position: fixed; pointer-events: none; z-index: 0;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.35;
+  }
+  .blob-1 {
+    width: 500px; height: 500px;
+    top: -150px; right: -150px;
+    background: var(--gold-light);
+  }
+  .blob-2 {
+    width: 400px; height: 400px;
+    bottom: -100px; left: -100px;
+    background: var(--teal-light);
+  }
+
+  /* ── ERROR MESSAGE ── */
+  .field-error {
+    font-size: 11px; color: var(--red);
+    margin-top: 5px; display: none;
+    padding-left: 2px;
+  }
+  .field-error.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<nav>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg fill="none" viewBox="0 0 16 16" stroke="#fff" stroke-width="2">
+        <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+        <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+      </svg>
+    </div>
+    VaultAuth
+  </div>
+  <div class="nav-badge">⚡ Bcrypt + 2FA</div>
+</nav>
+
+<div class="app">
+  <div class="card">
+    <div class="card-header">
+      <div class="status-row">
+        <div class="status-dot"></div>
+        <span class="status-label">SECURE CHANNEL ACTIVE</span>
+      </div>
+      <div class="card-title">Account<br><span>Access</span></div>
+      <div class="card-sub">Enterprise-grade authentication</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login', this)">Sign In</button>
+      <button class="tab" onclick="switchTab('register', this)">Register</button>
+      <button class="tab" onclick="switchTab('tfa', this)">2FA</button>
+    </div>
+
+    <!-- ── LOGIN PANEL ── -->
+    <div class="card-body">
+      <div class="panel active" id="panel-login">
+        <div class="field">
+          <div class="field-label"><span>EMAIL ADDRESS</span></div>
+          <div class="input-wrap">
+            <input type="email" id="login-email" placeholder="you@company.com" oninput="validateEmail(this)">
+            <span class="input-icon" id="email-icon">✉</span>
+          </div>
+          <div class="field-error" id="email-error">Enter a valid email address</div>
+        </div>
+        <div class="field">
+          <div class="field-label">
+            <span>PASSWORD</span>
+            <a class="field-link" onclick="showToast('Password reset link sent!', 'info')">Forgot?</a>
+          </div>
+          <div class="input-wrap">
+            <input type="password" id="login-pass" placeholder="••••••••" oninput="validatePassBasic(this)">
+            <span class="input-icon" onclick="togglePass('login-pass', this)">👁</span>
+          </div>
+          <div class="field-error" id="pass-error">Password must be at least 8 characters</div>
+        </div>
+        <label class="check-row" onclick="toggleCheck(this)">
+          <input type="checkbox">
+          <div class="check-box"></div>
+          <span class="check-text">Keep me signed in for 30 days</span>
+        </label>
+        <button class="btn-primary" onclick="doLogin()">
+          <span>Sign In Securely</span>
+          <span class="btn-icon">→</span>
+        </button>
+        <div class="divider"><span>or continue with</span></div>
+        <div class="oauth-row">
+          <button class="btn-oauth" onclick="showToast('Google OAuth coming soon', 'info')">
+            <svg viewBox="0 0 24 24"><path fill="#EA4335" d="M5.3 12A6.8 6.8 0 0 1 12 5.2c1.7 0 3.2.6 4.4 1.6l3.2-3.2A11.4 11.4 0 0 0 12 .8 11.2 11.2 0 0 0 1 12z"/><path fill="#34A853" d="M12 23.2a11.2 11.2 0 0 0 7.8-3.1l-3.6-2.9a6.8 6.8 0 0 1-10.2-3.5L1.2 16.6A11.2 11.2 0 0 0 12 23.2z"/><path fill="#4A90D9" d="M21.8 12c0-.7-.1-1.4-.2-2.1H12v4h5.5a4.7 4.7 0 0 1-2 3.1l3.6 2.9c2.1-2 3.7-4.9 3.7-8z"/><path fill="#FBBC05" d="M5.9 13.7A6.9 6.9 0 0 1 5.3 12c0-.6.1-1.2.3-1.7L1.9 7.4A11.2 11.2 0 0 0 .8 12c0 1.8.4 3.5 1.1 5z"/></svg>
+            Google
+          </button>
+          <button class="btn-oauth" onclick="showToast('GitHub OAuth coming soon', 'info')">
+            <svg viewBox="0 0 24 24" fill="var(--ink)"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.22.66-.48v-1.69C6.73 19.91 6.14 18 6.14 18c-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.8c.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .26.16.57.67.47C19.14 20.16 22 16.42 22 12c0-5.52-4.48-10-10-10z"/></svg>
+            GitHub
+          </button>
+        </div>
+      </div>
+
+      <!-- ── REGISTER PANEL ── -->
+      <div class="panel" id="panel-register">
+        <div class="field">
+          <div class="field-label"><span>FULL NAME</span></div>
+          <div class="input-wrap">
+            <input type="text" id="reg-name" placeholder="Alex Johnson" oninput="validateName(this)">
+            <span class="input-icon">☺</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span>EMAIL ADDRESS</span></div>
+          <div class="input-wrap">
+            <input type="email" id="reg-email" placeholder="you@company.com" oninput="validateEmail(this, 'reg')">
+            <span class="input-icon" id="reg-email-icon">✉</span>
+          </div>
+          <div class="field-error" id="reg-email-error">Enter a valid email address</div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span>PASSWORD</span></div>
+          <div class="input-wrap">
+            <input type="password" id="reg-pass" placeholder="Min. 8 characters" oninput="checkStrength(this)">
+            <span class="input-icon" onclick="togglePass('reg-pass', this)">👁</span>
+          </div>
+          <div class="strength-meter" id="strength-meter">
+            <div class="strength-bars">
+              <div class="strength-bar" id="sb1"></div>
+              <div class="strength-bar" id="sb2"></div>
+              <div class="strength-bar" id="sb3"></div>
+              <div class="strength-bar" id="sb4"></div>
+            </div>
+            <div class="strength-text" id="strength-text">Enter a password</div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label"><span>CONFIRM PASSWORD</span></div>
+          <div class="input-wrap">
+            <input type="password" id="reg-confirm" placeholder="Repeat password" oninput="validateConfirm(this)">
+            <span class="input-icon" onclick="togglePass('reg-confirm', this)">👁</span>
+          </div>
+          <div class="field-error" id="confirm-error">Passwords do not match</div>
+        </div>
+        <label class="check-row" onclick="toggleCheck(this)">
+          <input type="checkbox">
+          <div class="check-box"></div>
+          <span class="check-text">I agree to the Terms & Privacy Policy</span>
+        </label>
+        <button class="btn-primary" onclick="doRegister()">
+          <span>Create Account</span>
+          <span class="btn-icon">→</span>
+        </button>
+      </div>
+
+      <!-- ── 2FA PANEL ── -->
+      <div class="panel" id="panel-tfa">
+        <div class="tfa-hint">
+          <span class="tfa-hint-icon">🔐</span>
+          <div>Enter the <strong>6-digit code</strong> from your authenticator app. Codes refresh every 30 seconds.</div>
+        </div>
+        <div class="field-label" style="margin-bottom:10px"><span>AUTHENTICATION CODE</span></div>
+        <div class="otp-row">
+          <input class="otp-input" type="number" maxlength="1" id="o1" oninput="otpNext(this,1)" onkeydown="otpBack(event,1)">
+          <input class="otp-input" type="number" maxlength="1" id="o2" oninput="otpNext(this,2)" onkeydown="otpBack(event,2)">
+          <input class="otp-input" type="number" maxlength="1" id="o3" oninput="otpNext(this,3)" onkeydown="otpBack(event,3)">
+          <input class="otp-input" type="number" maxlength="1" id="o4" oninput="otpNext(this,4)" onkeydown="otpBack(event,4)">
+          <input class="otp-input" type="number" maxlength="1" id="o5" oninput="otpNext(this,5)" onkeydown="otpBack(event,5)">
+          <input class="otp-input" type="number" maxlength="1" id="o6" oninput="otpNext(this,6)" onkeydown="otpBack(event,6)">
+        </div>
+        <div style="text-align:center; margin: 10px 0 20px; font-size:12px; color:var(--ink-muted)">
+          Didn't receive? <a class="field-link" onclick="showToast('New code sent to your device', 'info')">Resend code</a>
+        </div>
+        <button class="btn-primary" onclick="doVerify2FA()">
+          <span>Verify Identity</span>
+          <span class="btn-icon">🔓</span>
+        </button>
+      </div>
+
+      <!-- ── SUCCESS PANEL ── -->
+      <div class="success-screen" id="success-screen">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Access Granted</div>
+        <div class="success-sub">Session authenticated with AES-256 encryption</div>
+        <div class="session-card">
+          <div class="session-row">
+            <span class="session-key">Session ID</span>
+            <span class="session-val" id="session-id">—</span>
+          </div>
+          <div class="session-row">
+            <span class="session-key">Auth Method</span>
+            <span class="session-val" id="auth-method">—</span>
+          </div>
+          <div class="session-row">
+            <span class="session-key">Expires</span>
+            <span class="session-val" id="session-exp">—</span>
+          </div>
+          <div class="session-row">
+            <span class="session-key">IP Address</span>
+            <span class="session-val">192.168.x.x</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()">⏻ &nbsp;Sign Out</button>
+      </div>
+
+      <div class="security-row" id="sec-badges">
+        <div class="sec-badge">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L3 4v4c0 3 2.5 5.5 5 6.5C11.5 13.5 14 11 14 8V4L8 2z"/></svg>
+          AES-256
+        </div>
+        <div class="sec-badge">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+          Bcrypt
+        </div>
+        <div class="sec-badge">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 5v3l2 2"/></svg>
+          TOTP 2FA
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Message</div>
+
+<script>
+let activeTab = 'login';
+let loggedIn = false;
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('success-screen').classList.remove('active');
+  document.getElementById('sec-badges').style.display = 'flex';
+  activeTab = tab;
+}
+
+function showSuccess(method) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('success-screen').classList.add('active');
+  document.getElementById('sec-badges').style.display = 'none';
+  const sid = 'VSA-' + Math.random().toString(36).substr(2,8).toUpperCase();
+  const exp = new Date(Date.now() + 30*60000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('session-id').textContent = sid;
+  document.getElementById('auth-method').textContent = method;
+  document.getElementById('session-exp').textContent = exp;
+  loggedIn = true;
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !validateEmailStr(email)) { showToast('Enter a valid email address', 'error'); return; }
+  if (pass.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  showToast('Hashing password with Bcrypt...', 'info');
+  setTimeout(() => showSuccess('Password + Bcrypt'), 1800);
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const confirm = document.getElementById('reg-confirm').value;
+  if (!name) { showToast('Please enter your name', 'error'); return; }
+  if (!validateEmailStr(email)) { showToast('Enter a valid email address', 'error'); return; }
+  if (pass.length < 8) { showToast('Password too weak', 'error'); return; }
+  if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
+  showToast('Account created! Storing hashed password...', 'info');
+  setTimeout(() => showSuccess('Email + Bcrypt'), 1800);
+}
+
+function doVerify2FA() {
+  let code = '';
+  for(let i=1;i<=6;i++) code += document.getElementById('o'+i).value;
+  if (code.length < 6) { showToast('Enter all 6 digits', 'error'); return; }
+  showToast('Verifying TOTP code...', 'info');
+  setTimeout(() => {
+    if (code === '000000') { showToast('Invalid code. Try again.', 'error'); }
+    else { showSuccess('2FA — TOTP Verified'); }
+  }, 1200);
+}
+
+function doLogout() {
+  showToast('Session destroyed securely', 'success');
+  setTimeout(() => {
+    document.getElementById('success-screen').classList.remove('active');
+    document.getElementById('sec-badges').style.display = 'flex';
+    document.querySelectorAll('.tab')[0].click();
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-pass').value = '';
+  }, 1200);
+}
+
+function validateEmailStr(e) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+function validateEmail(inp, prefix) {
+  const ok = validateEmailStr(inp.value.trim());
+  inp.classList.toggle('input-valid', ok && inp.value.length > 0);
+  inp.classList.toggle('input-invalid', !ok && inp.value.length > 0);
+}
+function validatePassBasic(inp) {
+  inp.classList.toggle('input-valid', inp.value.length >= 8);
+  inp.classList.toggle('input-invalid', inp.value.length > 0 && inp.value.length < 8);
+}
+function validateName(inp) {
+  inp.classList.toggle('input-valid', inp.value.trim().length > 1);
+}
+function validateConfirm(inp) {
+  const pass = document.getElementById('reg-pass').value;
+  const ok = inp.value === pass && inp.value.length > 0;
+  inp.classList.toggle('input-valid', ok);
+  inp.classList.toggle('input-invalid', !ok && inp.value.length > 0);
+  const err = document.getElementById('confirm-error');
+  err.classList.toggle('show', !ok && inp.value.length > 0);
+}
+
+function checkStrength(inp) {
+  const v = inp.value;
+  let score = 0;
+  if (v.length >= 8) score++;
+  if (v.length >= 12) score++;
+  if (/[0-9]/.test(v) && /[a-zA-Z]/.test(v)) score++;
+  if (/[^a-zA-Z0-9]/.test(v)) score++;
+  const labels = ['', 'Weak', 'Fair', 'Strong', 'Excellent'];
+  const cls = ['', 'filled-weak', 'filled-fair', 'filled-strong', 'filled-excellent'];
+  for(let i=1;i<=4;i++) {
+    const bar = document.getElementById('sb'+i);
+    bar.className = 'strength-bar' + (i <= score ? ' ' + cls[score] : '');
+  }
+  document.getElementById('strength-text').textContent = v.length === 0 ? 'Enter a password' : labels[score] || 'Weak';
+}
+
+function togglePass(id, icon) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  icon.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+function toggleCheck(row) {
+  const box = row.querySelector('.check-box');
+  box.classList.toggle('checked');
+}
+
+function otpNext(inp, idx) {
+  const val = inp.value.replace(/[^0-9]/g,'');
+  inp.value = val ? val[val.length-1] : '';
+  if (inp.value) {
+    inp.classList.add('filled');
+    if(idx < 6) document.getElementById('o'+(idx+1)).focus();
+  } else { inp.classList.remove('filled'); }
+}
+
+function otpBack(e, idx) {
+  if (e.key === 'Backspace' && !document.getElementById('o'+idx).value && idx > 1) {
+    document.getElementById('o'+(idx-1)).focus();
+  }
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = ' ' + msg;
+  t.className = 'toast ' + (type || 'info');
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
